@@ -18,10 +18,13 @@ fn main() {
     println!("Total cost: {}", cost);
 }
 
+// Function to calculate the travel cost between two cities based on distance and time
+// The cost is calculated as a weighted sum of distance and time, where alpha and beta are the weights for distance and time respectively
 fn travel_cost(i: usize, j: usize, distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, alpha: f64, beta: f64) -> f64 {
     alpha * distance[i][j] + beta * time[i][j]
 }
 
+// Nearest Neighbor heuristic for the Traveling Salesman Problem used to find an initial solution before simulated annealing optimization
 fn nearest_neighbor(distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, start: usize, alpha: f64, beta: f64) -> (Vec<usize>, f64) {
     let cities_number: usize = distance.len();
     let mut visited_cities: Vec<bool> = vec![false; cities_number];
