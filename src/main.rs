@@ -17,11 +17,11 @@ fn main() {
 
 // Function to calculate the travel cost between two cities based on distance and time
 // The cost is calculated as a weighted sum of distance and time, where alpha and beta are the weights for distance and time respectively
-fn travel_cost(i: usize, j: usize, distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, alpha: f64, beta: f64) -> f64 {
+fn travel_cost(i: usize, j: usize, distance: &[Vec<f64>], time: &[Vec<f64>], alpha: f64, beta: f64) -> f64 {
     alpha * distance[i][j] + beta * time[i][j]
 }
 
-fn route_cost(route: &[usize], distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, alpha: f64, beta: f64) -> f64 {
+fn route_cost(route: &[usize], distance: &[Vec<f64>], time: &[Vec<f64>], alpha: f64, beta: f64) -> f64 {
     let mut total_cost = 0.0;
 
     for i in 0..route.len() - 1 {
@@ -32,7 +32,7 @@ fn route_cost(route: &[usize], distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, a
 }
 
 // Nearest Neighbor heuristic for the Traveling Salesman Problem used to find an initial solution before simulated annealing optimization
-fn nearest_neighbor(distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, start: usize, alpha: f64, beta: f64) -> (Vec<usize>, f64) {
+fn nearest_neighbor(distance: &[Vec<f64>], time: &[Vec<f64>], start: usize, alpha: f64, beta: f64) -> (Vec<usize>, f64) {
     let cities_number: usize = distance.len();
     let mut visited_cities: Vec<bool> = vec![false; cities_number];
     let mut route: Vec<usize> = Vec::new();
@@ -93,7 +93,7 @@ fn generate_neighbor(route: &[usize], rng: &mut impl Rng) -> Vec<usize> {
     neighbor
 }
 
-fn simmulated_annealing(distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, start: usize, alpha: f64, beta: f64,
+fn simmulated_annealing(distance: &[Vec<f64>], time: &[Vec<f64>], start: usize, alpha: f64, beta: f64,
     initial_temp: f64, min_temp: f64, cooling_rate: f64, iterations_per_temp: usize) -> (Vec<usize>, f64) {
         let mut rng = rand::thread_rng();
 
