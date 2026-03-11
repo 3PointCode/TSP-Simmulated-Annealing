@@ -1,19 +1,34 @@
 use std::fs;
+use rand::Rng;
 
 fn main() {
-    let coords = read_city_cords("data/euclidA100.tsp");
+    let coords = read_city_coords("data/euclidA100.tsp");
     let distance = build_distance_matrix(&coords);
-    let coords = read_city_cords("data/euclidB100.tsp");
+    let coords = read_city_coords("data/euclidB100.tsp");
     let time = build_distance_matrix(&coords);
     let (route, cost) = nearest_neighbor(&distance, &time, 0, 0.5, 0.5);
     println!("Route: {:?}", route);
     println!("Total cost: {}", cost);
+
+    let (optimized_route, optimized_cost) = simmulated_annealing(&distance, &time, 0, 0.5, 0.5, 10000.0, 0.001, 0.95, 1000);
+    println!("Optimized Route: {:?}", optimized_route);
+    println!("Optimized Cost: {}", optimized_cost);
 }
 
 // Function to calculate the travel cost between two cities based on distance and time
 // The cost is calculated as a weighted sum of distance and time, where alpha and beta are the weights for distance and time respectively
 fn travel_cost(i: usize, j: usize, distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, alpha: f64, beta: f64) -> f64 {
     alpha * distance[i][j] + beta * time[i][j]
+}
+
+fn route_cost(route: &[usize], distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, alpha: f64, beta: f64) -> f64 {
+    let mut total_cost = 0.0;
+
+    for i in 0..route.len() - 1 {
+        total_cost += travel_cost(route[i], route[i + 1], distance, time, alpha, beta)
+    }
+
+    total_cost
 }
 
 // Nearest Neighbor heuristic for the Traveling Salesman Problem used to find an initial solution before simulated annealing optimization
@@ -57,8 +72,74 @@ fn nearest_neighbor(distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, start: usize
     (route, total_cost)
 }
 
+// Function to generate a new route during the simulated annealing algorithm using the 2-opt
+fn generate_neighbor(route: &[usize], rng: &mut impl Rng) -> Vec<usize> {
+    let mut neighbor = route.to_vec();
+
+    if neighbor.len() <= 4 {
+        return neighbor;
+    }
+
+    let n = neighbor.len();
+    let mut i = rng.gen_range(1..n - 2);
+    let mut j = rng.gen_range(1..n - 1);
+
+    if i > j {
+        std::mem::swap(&mut i, &mut j);
+    }
+
+    // reversing the route between i and j, example for i=1, j=4: [0, 1, 2, 3, 4, 5] -> [0, 4, 3, 2, 1, 5]
+    neighbor[i..=j].reverse();
+    neighbor
+}
+
+fn simmulated_annealing(distance: &Vec<Vec<f64>>, time: &Vec<Vec<f64>>, start: usize, alpha: f64, beta: f64,
+    initial_temp: f64, min_temp: f64, cooling_rate: f64, iterations_per_temp: usize) -> (Vec<usize>, f64) {
+        let mut rng = rand::thread_rng();
+
+        let (initial_route, initial_cost) = nearest_neighbor(distance, time, start, alpha, beta);
+        let mut current_route = initial_route;
+        let mut current_cost = initial_cost;
+
+        let mut best_route = current_route.clone();
+        let mut best_cost = current_cost;
+
+        let mut temperature = initial_temp;
+
+        while temperature > min_temp {
+            for _ in 0..iterations_per_temp {
+                let candidate_route = generate_neighbor(&current_route,&mut rng);
+                let candidate_cost = route_cost(&candidate_route, distance, time, alpha, beta);
+
+                let cost_delta = candidate_cost - current_cost;
+
+                if cost_delta < 0.0 {
+                    current_route = candidate_route;
+                    current_cost = candidate_cost;
+                } else {
+                    let acceptance_probability = (-cost_delta / temperature).exp();
+                    let random_value: f64 = rng.r#gen();
+                    
+                    if random_value < acceptance_probability {
+                        current_route = candidate_route;
+                        current_cost = candidate_cost;
+                    }
+                }
+
+                if current_cost < best_cost {
+                    best_route = current_route.clone();
+                    best_cost = current_cost;
+                }
+            }
+
+            temperature *= cooling_rate;
+        }
+        
+        (best_route, best_cost)
+}
+
 // Function to read city coordinates from a file and return them as a vector of tuples (x, y)
-fn read_city_cords(path: &str) -> Vec<(f64,f64)> {
+fn read_city_coords(path: &str) -> Vec<(f64,f64)> {
     let content = fs::read_to_string(path).unwrap();
     let mut coords: Vec<(f64, f64)> = Vec::new();
     let mut reading: bool = false;
