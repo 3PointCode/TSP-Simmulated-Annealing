@@ -1,4 +1,6 @@
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 
 // Function to read city coordinates from a file and return them as a vector of tuples (x, y)
 pub fn read_city_coords(path: &str) -> Vec<(f64,f64)> {
@@ -59,6 +61,61 @@ pub fn read_cost_pairs(path: &str) -> Vec<(f64, f64)> {
     }
 
     pairs
+}
+
+pub fn ensure_results_dir(path: &str) {
+    fs::create_dir_all(path).expect("Failed to create results directory!");
+}
+
+pub fn init_results_file(path: &str) {
+    if !Path::new(path).exists() {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(path)
+            .expect("Failed to create results CSV file!");
+
+        writeln!(file, "initial_temp,min_temp,cooling_rate,iterations_per_temp,nearest_neighbor_cost,optimized_cost,best_known_cost,cost_ratio_to_best,gap_percent,duration_ms")
+            .expect("Failed to write header to CSV file!");
+    }
+}
+
+pub fn append_result_row(
+    path: &str,
+    initial_temp: f64,
+    min_temp: f64,
+    cooling_rate: f64,
+    iterations_per_temp: usize,
+    nearest_neighbor_cost: f64,
+    optimized_cost: f64,
+    best_known_cost: f64,
+    duration_ms: u128,
+) {
+    let cost_ratio_to_best = optimized_cost / best_known_cost;
+    let gap_percent = ((optimized_cost - best_known_cost) / best_known_cost) * 100.0;
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .expect("Failed to open results CSV file!");
+
+    writeln!(
+        file,
+        "{:.3},{:.3},{:.3},{},{:.3},{:.3},{:.3},{:.3},{:.3},{}",
+        initial_temp,
+        min_temp,
+        cooling_rate,
+        iterations_per_temp,
+        nearest_neighbor_cost,
+        optimized_cost,
+        best_known_cost,
+        cost_ratio_to_best,
+        gap_percent,
+        duration_ms
+    )
+    .expect("Failed to append CSV row!");
 }
 
 #[cfg(test)]
